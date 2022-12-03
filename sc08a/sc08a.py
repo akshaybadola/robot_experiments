@@ -39,6 +39,10 @@ class SC08A:
         baudrate: The baudrate to connect with the serial port
         debug: Whether to print additional debug information
 
+
+    TODO:
+        1. Motor status, is it on or off?
+
     """
 
     def __init__(self, portname: str, baudrate: Optional[int], debug: bool = False):
@@ -118,10 +122,33 @@ class SC08A:
         return int(bin(0b10000000 | high)[3:] + bin(0b1000000 | low)[3:], 2)
 
     def shutdown(self):
+        """Stop the servo controller
+
+        1. Turn off all the motors
+        2. Close the serial port
+
+        """
+        for i in range(1, 9):
+            self.off_motor(i)
         self.port.close()
 
 
 class Service:
+    """Flask service for SCO8A Servo Controller
+
+    Args:
+        pins: List of pins to run on the service
+        port: The port for the servo controller
+        baudrate: Baudrate for the port
+
+
+    TODO:
+        1. Motor status, is it on or off?
+        2. Motor running status, is the motor running?
+           While running we should not issue new commands to a motor and
+           status should be stored internally
+
+    """
     def __init__(self, pins: List[int], port: str, baudrate: Optional[int]):
         self.pins = pins
         self.port = port
