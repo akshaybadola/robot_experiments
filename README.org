@@ -1,0 +1,15 @@
+* Robotics Experiments
+
+  This repository contains various source for hardware integration and access
+  with Raspberry Pi and Jetson Nano of some common hardware modules like:
+  - Servo Controllers
+  - DC Motor Drivers
+  - Camera Modules
+  - Various Sensors
+
+  See README in each folder to check usage
+
+* License
+
+  All the code in this repo except for external services and libraries are
+  licensed under MIT. See LICENSE file in the repo.
