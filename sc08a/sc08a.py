@@ -49,7 +49,6 @@ class SC08A:
         self.baudrate = baudrate or 9600
         self.debug = debug
         self.port = serial.Serial(portname, self.baudrate, timeout=0.1, write_timeout=0.1)
-        self.init_all_motors()
 
     def init_all_motors(self):
         """Initialize all motors.
@@ -149,16 +148,15 @@ class Service:
            status should be stored internally
 
     """
-    def __init__(self, pins: List[int], port: str, baudrate: Optional[int]):
+    def __init__(self, pins: List[int], port: str, baudrate: Optional[int] = None):
         self.pins = pins
         self.port = port
-        self.controller = SC08A(port, baudrate=baudrate)
-        self.controller.init_all_motors()
+        self.badurate = baudrate or 9600
         self.app = Flask("Servo")
         self.init_routes()
 
     def init_controller(self):
-        self.controller = SC08A(self.port)
+        self.controller = SC08A(self.port, self.baudrate)
         self.controller.init_all_motors()
 
     def init_routes(self):
