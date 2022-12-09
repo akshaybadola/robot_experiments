@@ -31,6 +31,8 @@ class TwoDOFArm:
         self.serial_port = serial_port
         self.baudrate = baudrate
         self.init_controller()
+        self.default_speed = 100
+        self.default_increment = 100
         self.app = Flask("Servo")
 
     def init_controller(self):
@@ -45,9 +47,9 @@ class TwoDOFArm:
         pin = self.pins["left_right"]
         cur_pos = self.controller.get_pos(pin)
         if lr == "left":
-            pos = cur_pos + 100
+            pos = cur_pos + self.default_increment
         else:
-            pos = cur_pos - 100
+            pos = cur_pos - self.default_increment
         self.controller.set_pos_speed(pin, pos, speed)
         return f"Setting position for motor: {pin} at: {pos} and speed: {speed}"
 
@@ -55,9 +57,9 @@ class TwoDOFArm:
         pin = self.pins["up_down"]
         cur_pos = self.controller.get_pos(pin)
         if ud == "up":
-            pos = cur_pos - 100
+            pos = cur_pos - self.default_increment
         else:
-            pos = cur_pos + 100
+            pos = cur_pos + self.default_increment
         self.controller.set_pos_speed(pin, pos, speed)
         return f"Setting position for motor: {pin} at: {pos} and speed: {speed}"
 
@@ -77,7 +79,7 @@ class TwoDOFArm:
         def _go_left():
             if "speed" not in request.args:
                 print("speed not given. Will use 50")
-                speed = 50
+                speed = self.default_speed
             else:
                 speed = int(request.args.get("speed"))
             return self._go_left_right("left", speed)
@@ -86,7 +88,7 @@ class TwoDOFArm:
         def _go_right():
             if "speed" not in request.args:
                 print("speed not given. Will use 50")
-                speed = 50
+                speed = self.default_speed
             else:
                 speed = int(request.args.get("speed"))
             return self._go_left_right("right", speed)
@@ -95,7 +97,7 @@ class TwoDOFArm:
         def _go_up():
             if "speed" not in request.args:
                 print("speed not given. Will use 50")
-                speed = 50
+                speed = self.default_speed
             else:
                 speed = int(request.args.get("speed"))
             return self._go_up_down("up", speed)
@@ -104,7 +106,7 @@ class TwoDOFArm:
         def _go_down():
             if "speed" not in request.args:
                 print("speed not given. Will use 50")
-                speed = 50
+                speed = self.default_speed
             else:
                 speed = int(request.args.get("speed"))
             return self._go_up_down("down", speed)
