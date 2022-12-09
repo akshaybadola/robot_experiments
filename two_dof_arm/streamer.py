@@ -8,13 +8,15 @@ from picamera2.outputs import FileOutput, FfmpegOutput
 
 
 class Streamer:
-    def __init__(self, hostname, port, http=False):
+    def __init__(self, hostname, port, bit_rate, size, http=False):
         self.hostname = hostname
         self.port = port
         self.cam = Picamera2()
-        video_config = self.cam.create_video_configuration({"size": (1280, 720)})
+        video_config = self.cam.create_video_configuration({"size": size})
         self.cam.configure(video_config)
-        self.encoder = H264Encoder(500000)
+        self.size = size
+        self.bit_rate = bit_rate
+        self.encoder = H264Encoder(bit_rate)
         self.http = http
 
     def start_tcp(self):
@@ -43,7 +45,7 @@ class Streamer:
         self.cam.start_recording(self.encoder, output)
 
 
-def main(method, port, frame_rate):
+def main(method, port, frame_rate, bit_rate, size):
     service = Streamer("0.0.0.0", port)
     try:
         if method == "ffmpeg":
@@ -66,5 +68,8 @@ if __name__ == '__main__':
     parser.add_argument("method")
     parser.add_argument("-p", "--port", type=int, default=8080)
     parser.add_argument("-f", "--frame-rate", type=int, default=25)
+    parser.add_argument("-b", "--bit-rate", type=int, default=500000)
+    parser.add_argument("-s", "--size", default="1280,720")
     args = parser.parse_args()
-    main(args.method, args.port, args.frame_rate)
+    size = [*map(int, args.size.split(","))]
+    main(args.method, args.port, args.frame_rate, args.bit_rate, size)
