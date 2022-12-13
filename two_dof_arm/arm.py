@@ -21,6 +21,21 @@ timer = Timer()
 
 
 class TwoDOFArm:
+    """A class for controlling Two DOF Robotic Arm with two servo motors and a
+    camera at the head. Uses an SC08A controller to control the two motors.
+
+    The camera is captured and images are read on demand via HTTP requests.
+
+    Args:
+        width: Image width to capture
+        height: Image height to capture
+        http_port: HTTP port on which to listen
+        pins: A :class:`dict` of pins which designate which motor rotates in the
+              horizontal plane and which in the vertical plane
+        serial_port: The serial port to which :class:`SC08A` is connected
+        baudrate: Optional baudrate of the serial port, defaults to 9600 in :code:`SC08A`
+
+    """
     def __init__(self, width, height, http_port, pins: Dict[str, int], serial_port: str,
                  baudrate: Optional[int] = None):
         self._gst_pipeline = gstreamer_pipeline(width, height, flip_180=True)
@@ -64,6 +79,20 @@ class TwoDOFArm:
         return f"Setting position for motor: {pin} at: {pos} and speed: {speed}"
 
     def init_routes(self):
+        def _maybe_get_speed(request):
+            if "speed" not in request.args:
+                print("speed not given. Will use 50")
+                speed = self.default_speed
+            else:
+                speed = int(request.args.get("speed"))
+            return speed
+
+        def _get_pin(request):
+            if "pin" not in request.args:
+                return "Pin not given"
+            pin = int(request.args.get("pin"))
+            return pin
+
         @self.app.route("/get_frame", methods=["GET"])
         def __get_frame():
             with timer:
@@ -77,52 +106,32 @@ class TwoDOFArm:
 
         @self.app.route("/go_left", methods=["GET"])
         def _go_left():
-            if "speed" not in request.args:
-                print("speed not given. Will use 50")
-                speed = self.default_speed
-            else:
-                speed = int(request.args.get("speed"))
+            speed = _maybe_get_speed(request)
             return self._go_left_right("left", speed)
 
         @self.app.route("/go_right", methods=["GET"])
         def _go_right():
-            if "speed" not in request.args:
-                print("speed not given. Will use 50")
-                speed = self.default_speed
-            else:
-                speed = int(request.args.get("speed"))
+            speed = _maybe_get_speed(request)
             return self._go_left_right("right", speed)
 
         @self.app.route("/go_up", methods=["GET"])
         def _go_up():
-            if "speed" not in request.args:
-                print("speed not given. Will use 50")
-                speed = self.default_speed
-            else:
-                speed = int(request.args.get("speed"))
+            speed = _maybe_get_speed(request)
             return self._go_up_down("up", speed)
 
         @self.app.route("/go_down", methods=["GET"])
         def _go_down():
-            if "speed" not in request.args:
-                print("speed not given. Will use 50")
-                speed = self.default_speed
-            else:
-                speed = int(request.args.get("speed"))
+            speed = _maybe_get_speed(request)
             return self._go_up_down("down", speed)
 
         @self.app.route("/get_pos", methods=["GET"])
         def _get_pos():
-            if "pin" not in request.args:
-                return "Pin not given"
-            pin = int(request.args.get("pin"))
+            pin = _get_pin(request)
             return str(self.controller.get_pos(pin))
 
         @self.app.route("/reset", methods=["GET"])
         def _reset():
-            if "pin" not in request.args:
-                return "Pin not given"
-            pin = int(request.args.get("pin"))
+            pin = _get_pin(request)
             self.controller.off_motor(pin)
             return f"Turning motor {pin} OFF"
 
