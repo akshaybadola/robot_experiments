@@ -23,30 +23,46 @@ def gstreamer_pipeline(width=1280, height=720, flip_180=False):
 timer = Timer()
 
 
-# bufferless VideoCapture
+# Bufferless VideoCapture
+# Adapted from https://stackoverflow.com/a/54577746/16723964
 class VideoCapture:
-    def __init__(self, pipeline):
-        self.cap = cv.VideoCapture(pipeline, cv.CAP_GSTREAMER)
+    def __init__(self, pipeline, cap_type):
+        self._cap = cv.VideoCapture(pipeline, cap_type)
         self.q = Queue()
-        self.t = Thread(target=self._reader)
-        self.t.daemon = True
-        self.t.start()
+        self._reader_thread = Thread(target=self._reader)
+        self._reader_thread.start()
+        self._should_read = Event()
+        self._should_read.set()
 
     # read frames as soon as they are available, keeping only most recent one
     def _reader(self):
-        while True:
-            ret, frame = self.cap.read()
+        while self._should_read.is_set():
+            ret, frame = self._cap.read()
             if not ret:
                 break
             if not self.q.empty():
                 try:
-                    self.q.get_nowait()   # discard previous (unprocessed) frame
+                    self.q.get_nowait()  # discard previous (unprocessed) frame
                 except Queue.Empty:
                     pass
             self.q.put(frame)
 
+    def stop(self):
+        self._should_read.clear()
+        self._reader_thread.join()
+        self._cap.release()
+
+    def isOpened(self):
+        return self._should_read.is_set()
+
+    def release(self):
+        self.stop()
+
     def read(self):
-        return True, self.q.get()
+        if self._should_read.is_set():
+            return True, self.q.get()
+        else:
+            return False, None
 
 
 class TwoDOFArm:
@@ -72,7 +88,7 @@ class TwoDOFArm:
         self._flip = True
         self._gst_pipeline = gstreamer_pipeline(width, height, flip_180=self._flip)
         # self._cap = cv.VideoCapture(self._gst_pipeline, cv.CAP_GSTREAMER)
-        self._cap = VideoCapture(self._gst_pipeline)
+        self._cap = VideoCapture(self._gst_pipeline, cv.CAP_GSTREAMER)
         self.port = http_port
         self.app = Flask("Frame Server")
         self.pins = pins

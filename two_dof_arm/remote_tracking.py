@@ -1,3 +1,4 @@
+from typing import List, Union
 import argparse
 import base64
 
@@ -14,8 +15,29 @@ timer = Timer()
 
 
 class RemoteClient:
-    def __init__(self, host, port, flip=0, convert=None,
-                 low_val=[0, 0, 0], high_val=[255, 255, 255]):
+    """A client for a remote Two DOF Robotic Arm to capture images and move
+    manually with a keyboard and automatically based on deltas of center of
+    object from the center of the image.
+
+    Args:
+        host: Remote host ip address
+        port: Remote port
+        img_size: The size of the image [width, height] that we'll receive
+        flip: Flip the image?
+        convert: Convert from BGR2RGB
+        low_val: Low threshold per channel for image
+        high_val: High threshold per channel for image
+
+    The current version tracks a red object after converting the image to HSV
+    which is fairly easy. A more advanced client should detect specific objects
+    and track/record them.
+
+    """
+
+    def __init__(self, host: str, port: Union[int, str],
+                 img_size: List[int] = [640, 480], flip: int = 0,
+                 convert: bool = False, low_val: List[int] = [0, 0, 0],
+                 high_val: List[int] = [255, 255, 255]):
         self._host = host
         self._port = port
         self._flip = flip
@@ -23,10 +45,14 @@ class RemoteClient:
         self._server = f"http://{self._host}:{self._port}"
         self._low_val = np.array(low_val)
         self._high_val = np.array(high_val)
-        self._center = 640/2, 480/2
-
+        self._img_size = img_size
+        self._center = np.array(self._img_size)/2
 
     def simple_agent(self):
+        """A Simple Agent which navigates the robotic arm based on deltas from
+        the center of the image.
+
+        """
         server = self._server
         while True:
             key = cv.waitKey(1)
@@ -46,8 +72,7 @@ class RemoteClient:
                     max_area_contour = contours[sorted_inds[-1]]
                     x_mid, y_mid = get_midpoints(max_area_contour)
                     cv.circle(img, (x_mid, y_mid), 10, (0, 255, 0))
-                    x_d = self._center[0] - x_mid
-                    y_d = self._center[1] - y_mid
+                    x_d, y_d = self._center/2
                     print(x_mid, y_mid, x_d, y_d)
                 if np.abs(x_d) > 5:
                     resp = requests.get(f"{server}/horizontal?delta={int(x_d/10)}")
@@ -61,8 +86,9 @@ class RemoteClient:
                 break
         cv.destroyAllWindows()
 
-
     def manual_remote_tracking(self):
+        """Manually control the 2 DOF robotic arm with a keyboard
+        """
         server = self._server
         i = 0
         while True:
@@ -104,12 +130,13 @@ class RemoteClient:
 
 
 if __name__ == '__main__':
-    low_red = np.array([163, 74, 30])
-    high_red = np.array([179, 255, 255])
+    low_red = [163, 74, 30]
+    high_red = [179, 255, 255]
     parser = argparse.ArgumentParser()
     parser.add_argument("host")
     parser.add_argument("-p", "--port", type=int, default=8080)
     parser.add_argument("--no-bgr2rgb", dest="bgr2rgb", action="store_false")
     args = parser.parse_args()
-    client = RemoteClient(args.host, args.port, low_val=low_red, high_val=high_red)
+    client = RemoteClient(args.host, args.port, img_size=[640, 480],
+                          low_val=low_red, high_val=high_red)
     client.simple_agent()
