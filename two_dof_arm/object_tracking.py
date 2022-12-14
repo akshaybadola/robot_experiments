@@ -77,11 +77,10 @@ def get_contours_and_mask_hsv(img, low_val, high_val):
     return contours, mask
 
 
-def get_contours_and_mask_rgb(img, low_val, high_val):
+def get_contours_and_mask_bgr(img, low_val, high_val):
     mask = cv.inRange(img, low_val, high_val)
     contours, _ = cv.findContours(mask, cv.RETR_LIST, cv.CHAIN_APPROX_NONE)
     return contours, mask
-
 
 
 def main(width, height, low_val, high_val):
@@ -107,7 +106,7 @@ def main(width, height, low_val, high_val):
 
     while status:
         frame = cv.flip(frame, 1)
-        contours, mask = get_contours_and_mask_rgb(frame, low_val, high_val)
+        contours, mask = get_contours_and_mask_bgr(frame, low_val, high_val)
         # contours, mask = get_contours_and_mask_hsv(frame, low_val, high_val)
 
         if not len(contours):
